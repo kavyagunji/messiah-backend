@@ -6,16 +6,37 @@ const cors = require('cors');
 
 const app = express();
 
-// Middleware
+//  Middleware
 app.use(cors({
-  origin: '*' // later you can restrict to your Angular domain
+  origin: '*' // you can restrict later
 }));
 app.use(express.json());
 
-// Test route
-app.get('/', (req, res) => {
-  res.send('Backend is running...');
+
+//  Create transporter ONCE (outside API)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
+
+//  Verify email config at startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ EMAIL CONFIG ERROR:", error);
+  } else {
+    console.log("✅ Email server is ready");
+  }
+});
+
+
+//  Health check route (important)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
 
 // Email API
 app.post('/send-email', async (req, res) => {
@@ -24,61 +45,46 @@ app.post('/send-email', async (req, res) => {
   const { name, email, city, phone, subject, message } = req.body;
 
   try {
-  const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  family: 4, // 🔥 force IPv4
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-    let emailSubject = '';
-    let emailText = '';
-
-    if (subject) {
-      emailSubject = `Contact Form: ${subject}`;
-      emailText = `
-Name: ${name}
-Email: ${email}
-Message: ${message}
-      `;
-    } else {
-      emailSubject = 'New Prayer Request';
-      emailText = `
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
+      replyTo: email,
+      subject: subject ? `Contact Form: ${subject}` : 'New Prayer Request',
+      text: `
 Name: ${name}
 Email: ${email}
 City: ${city || 'N/A'}
 Phone: ${phone || 'N/A'}
 Message: ${message}
-      `;
-    }
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER, // send to yourself
-      replyTo: email,
-      subject: emailSubject,
-      text: emailText
+      `
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    // ⏱️ Add timeout protection (VERY IMPORTANT)
+    const sendMailPromise = transporter.sendMail(mailOptions);
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Email timeout')), 15000)
+    );
+
+    const info = await Promise.race([sendMailPromise, timeoutPromise]);
 
     console.log("EMAIL SENT:", info);
 
-    res.status(200).json({ message: 'Email sent successfully' });
+    return res.status(200).json({ message: 'Email sent successfully' });
 
   } catch (error) {
     console.error("FULL ERROR:", error);
-    res.status(500).json({ error: error.message });
+
+    return res.status(500).json({
+      error: error.message || 'Failed to send email'
+    });
   }
 });
 
-// PORT for deployment
+
+//  Start server
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
