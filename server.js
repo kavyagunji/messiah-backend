@@ -11,9 +11,9 @@ app.use(express.json());
 
 // 2. EMAIL CONFIGURATION
 const transporter = nodemailer.createTransport({
-    host: '://gmail.com',
+    host: 'smtp.gmail.com', // Correct SMTP host
     port: 465,
-    secure: true, // true for 465, false for other ports
+    secure: true, // true for port 465
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS // Use the 16-character App Password here
@@ -38,7 +38,6 @@ app.post('/send-email', (req, res) => {
     console.log('Data received:', req.body);
     const { name, email, city, phone, subject, message } = req.body;
 
-    // Admin email (the one you receive)
     const adminMail = {
         from: process.env.EMAIL_USER,
         to: process.env.EMAIL_USER,
@@ -55,7 +54,6 @@ app.post('/send-email', (req, res) => {
         `
     };
 
-    // User confirmation email (the one the sender receives)
     const userMail = {
         from: process.env.EMAIL_USER,
         to: email,
@@ -63,7 +61,6 @@ app.post('/send-email', (req, res) => {
         text: `Hi ${name},\n\nThank you for reaching out. We have received your message and will get back to you shortly.\n\nGod bless you!`
     };
 
-    // Send both emails
     Promise.all([
         transporter.sendMail(adminMail),
         transporter.sendMail(userMail)
