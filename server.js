@@ -52,8 +52,8 @@ app.post('/send-email', (req, res) => {
 
   //  Step 2: Send email in background
   const mailOptions = {
-    from: process.env.EMAIL_USERS,
-    to: process.env.EMAIL_USERS,
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_USER,
     replyTo: email,
     subject: subject ? `Contact Form: ${subject}` : 'New Prayer Request',
     text: `
