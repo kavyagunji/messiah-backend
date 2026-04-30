@@ -1,37 +1,26 @@
-require('dotenv').config();
-
-const express = require('express');
-const nodemailer = require('nodemailer');
-const cors = require('cors');
-
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-// ✅ SendGrid transporter
-const transporter = nodemailer.createTransport({
-  host: 'smtp.sendgrid.net',
-  port: 587,
-  auth: {
-    user: 'apikey',
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-// ✅ Test route
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK' });
-});
-
-// ✅ Email API
 app.post('/send-email', async (req, res) => {
+  console.log("DATA RECEIVED:", req.body);
+
+  const { name, email, city, phone, message } = req.body;
+
+  // ✅ Send response immediately (DO NOT WAIT)
+  res.status(200).json({ message: 'Request received' });
+
   try {
-    const { name, email, city, phone, message } = req.body;
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      connectionTimeout: 10000
+    });
 
     const mailOptions = {
-      from: 'your_verified_email@gmail.com', // MUST verify in SendGrid
-      to: 'your_verified_email@gmail.com',
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
       replyTo: email,
       subject: 'New Prayer Request',
       text: `
@@ -43,18 +32,12 @@ Message: ${message}
       `
     };
 
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({ message: 'Email sent successfully' });
+    // 🔥 Send email in background (no blocking)
+    transporter.sendMail(mailOptions)
+      .then(info => console.log("EMAIL SENT:", info))
+      .catch(err => console.error("EMAIL ERROR:", err));
 
   } catch (error) {
     console.error("ERROR:", error);
-    res.status(500).json({ error: 'Failed to send email' });
   }
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
