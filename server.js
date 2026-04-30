@@ -6,79 +6,77 @@ const cors = require('cors');
 
 const app = express();
 
-// Middleware
-app.use(cors({
-  origin: '*' // later you can restrict to your Angular domain
-}));
+// ✅ Middleware
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Test route
+// ✅ Health check
 app.get('/', (req, res) => {
   res.send('Backend is running...');
 });
 
-// Email API
-app.post('/send-email', async (req, res) => {
-  console.log("DATA RECEIVED:", req.body);
-
-  const { name, email, city, phone, subject, message } = req.body;
-
-  try {
-  const transporter = nodemailer.createTransport({
+// ✅ Create transporter ONCE (important)
+const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
-  family: 4, // 🔥 force IPv4
+  family: 4, // 🔥 force IPv4 (fix ENETUNREACH)
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    pass: process.env.EMAIL_PASS // must be App Password
   }
 });
 
-    let emailSubject = '';
-    let emailText = '';
+// ✅ Verify transporter at startup
+transporter.verify((error) => {
+  if (error) {
+    console.error('❌ EMAIL CONFIG ERROR:', error);
+  } else {
+    console.log('✅ Email server ready');
+  }
+});
 
-    if (subject) {
-      emailSubject = `Contact Form: ${subject}`;
-      emailText = `
-Name: ${name}
-Email: ${email}
-Message: ${message}
-      `;
-    } else {
-      emailSubject = 'New Prayer Request';
-      emailText = `
+// ✅ Handle GET (avoid browser loading issue)
+app.get('/send-email', (req, res) => {
+  res.send('Use POST method to send email');
+});
+
+// ✅ Email API (NON-BLOCKING)
+app.post('/send-email', (req, res) => {
+  console.log('DATA RECEIVED:', req.body);
+
+  const { name, email, city, phone, subject, message } = req.body;
+
+  // ✅ Step 1: Respond immediately (NO WAITING)
+  res.status(200).json({ message: 'Request received successfully' });
+
+  // ✅ Step 2: Send email in background
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_USER,
+    replyTo: email,
+    subject: subject ? `Contact Form: ${subject}` : 'New Prayer Request',
+    text: `
 Name: ${name}
 Email: ${email}
 City: ${city || 'N/A'}
 Phone: ${phone || 'N/A'}
 Message: ${message}
-      `;
-    }
+    `
+  };
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER, // send to yourself
-      replyTo: email,
-      subject: emailSubject,
-      text: emailText
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("EMAIL SENT:", info);
-
-    res.status(200).json({ message: 'Email sent successfully' });
-
-  } catch (error) {
-    console.error("FULL ERROR:", error);
-    res.status(500).json({ error: error.message });
-  }
+  transporter.sendMail(mailOptions)
+    .then(info => {
+      console.log('📧 EMAIL SENT:', info.response);
+    })
+    .catch(err => {
+      console.error('❌ EMAIL ERROR:', err);
+    });
 });
 
-// PORT for deployment
+// ✅ Start server
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
