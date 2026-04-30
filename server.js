@@ -1,6 +1,6 @@
-/*require('dotenv').config();
+require('dotenv').config();
 
-const express = require('express');
+/*const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 
@@ -81,7 +81,11 @@ app.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);
 });*/
 
+corequire('dotenv').config();
 const nodemailer = require('nodemailer');
+
+console.log('EMAIL_USER:', process.env.EMAIL_USER);
+console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -99,7 +103,7 @@ transporter.sendMail({
   subject: 'Test Email',
   text: 'This is a test email.'
 }).then(info => {
-  console.log('Test email sent:', info.response);
+  console.log('Email sent:', info.response);
 }).catch(err => {
-  console.error('Error sending test email:', err);
+  console.error('Error sending email:', err);
 });
