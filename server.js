@@ -1,4 +1,4 @@
-require('dotenv').config();
+/*require('dotenv').config();
 
 const express = require('express');
 const nodemailer = require('nodemailer');
@@ -79,4 +79,27 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);
+});*/
+
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+transporter.sendMail({
+  from: process.env.EMAIL_USER,
+  to: process.env.EMAIL_USER,
+  subject: 'Test Email',
+  text: 'This is a test email.'
+}).then(info => {
+  console.log('Test email sent:', info.response);
+}).catch(err => {
+  console.error('Error sending test email:', err);
 });
