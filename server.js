@@ -50,20 +50,43 @@ app.post('/send-email', (req, res) => {
   //  Step 1: Respond immediately (NO WAITING)
   res.status(200).json({ message: 'Request received successfully' });
 
-  //  Step 2: Send email in background
-  const mailOptions = {
-    from: process.env.EMAIL_USERS,
-    to: process.env.EMAIL_USERS,
-    replyTo: email,
-    subject: subject ? `Contact Form: ${subject}` : 'New Prayer Request',
-    text: `
+//  Admin email (you receive)
+const adminMail = {
+  from: process.env.EMAIL_USER,
+  to: process.env.EMAIL_USER,
+  replyTo: email,
+  subject: subject ? `Contact Form: ${subject}` : 'New Prayer Request',
+  text: `
 Name: ${name}
 Email: ${email}
 City: ${city || 'N/A'}
 Phone: ${phone || 'N/A'}
 Message: ${message}
-    `
-  };
+  `
+};
+
+// User confirmation email
+const userMail = {
+  from: process.env.EMAIL_USER,
+  to: email,
+  subject: 'We received your request',
+  text: `
+Hi ${name},
+
+Thank you for contacting us. We received your request and will get back to you soon.
+
+God bless you 
+  `
+};
+
+//  Send both
+transporter.sendMail(adminMail)
+  .then(() => console.log("Admin mail sent"))
+  .catch(err => console.error("Admin mail error:", err));
+
+transporter.sendMail(userMail)
+  .then(() => console.log("User mail sent"))
+  .catch(err => console.error("User mail error:", err));
 
   transporter.sendMail(mailOptions)
     .then(info => {
