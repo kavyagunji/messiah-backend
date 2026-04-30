@@ -27,9 +27,9 @@ transporter.verify((error, success) => {
 
 // API
 app.post('/send-email', async (req, res) => {
-  const { name, email, city, phone, subject, message } = req.body;
+  const { name, email, city, phone, countryCode, message } = req.body;
 
-  if (!name || !email || !subject || !message) {
+  if (!name || !email || !countryCode || !message) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
@@ -37,7 +37,7 @@ app.post('/send-email', async (req, res) => {
     const mailOptions = {
       from: `"Website Contact" <${process.env.EMAIL_USER}>`,
       to: process.env.EMAIL_USER, // send to yourself
-      subject: subject,
+      subject: 'New Contact Form Submission',
       text: `
         Name: ${name}
         Email: ${email}
