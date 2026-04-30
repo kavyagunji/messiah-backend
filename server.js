@@ -47,13 +47,13 @@ app.post('/send-email', async (req, res) => {
     res.json({ success: true, message: 'Email sent ✅' });
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
+  console.log('ERROR FULL:', error.response?.data || error.message);
 
-    res.status(500).json({
-      success: false,
-      error: 'Failed to send email'
-    });
-  }
+  res.status(500).json({
+    success: false,
+    error: error.response?.data || error.message
+  });
+}
 });
 
 const PORT = process.env.PORT || 3000;
