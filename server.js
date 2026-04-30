@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-/*const express = require('express');
+const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 
@@ -20,7 +20,7 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
-  family: 4, // 🔥 force IPv4 (fix ENETUNREACH)
+  family: 4, // force IPv4 (fix ENETUNREACH)
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS // must be App Password
@@ -79,31 +79,4 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);
-});*/
-
-corequire('dotenv').config();
-const nodemailer = require('nodemailer');
-
-console.log('EMAIL_USER:', process.env.EMAIL_USER);
-console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-transporter.sendMail({
-  from: process.env.EMAIL_USER,
-  to: process.env.EMAIL_USER,
-  subject: 'Test Email',
-  text: 'This is a test email.'
-}).then(info => {
-  console.log('Email sent:', info.response);
-}).catch(err => {
-  console.error('Error sending email:', err);
 });
