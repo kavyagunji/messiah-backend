@@ -1,81 +1,52 @@
-require('dotenv').config();
-
 const express = require('express');
 const nodemailer = require('nodemailer');
-const cors = require('cors');
 
 const app = express();
+const PORT = 3000;
 
-// Middleware
-app.use(cors({
-  origin: '*' // later you can restrict to your Angular domain
-}));
+// Middleware to parse JSON bodies
 app.use(express.json());
 
-// Test route
-app.get('/', (req, res) => {
-  res.send('Backend is running...');
-});
-
-// Email API
+// POST endpoint to send email
 app.post('/send-email', async (req, res) => {
-  console.log("DATA RECEIVED:", req.body);
+  const { to, subject, text } = req.body;
+  
+  // Basic validation
+  if (!to || !subject || !text) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
 
-  const { name, email, city, phone, subject, message } = req.body;
+  // Log request body
+  console.log('Received email request:', req.body);
+
+  // Configure your SMTP transporter
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail', // or your email provider
+    auth: {
+      user: 'your.email@gmail.com', // your email
+      pass: 'yourpassword',        // your email password or app password
+    },
+  });
+
+  // Email options
+  const mailOptions = {
+    from: 'your.email@gmail.com',
+    to,
+    subject,
+    text,
+  };
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    let emailSubject = '';
-    let emailText = '';
-
-    if (subject) {
-      emailSubject = `Contact Form: ${subject}`;
-      emailText = `
-Name: ${name}
-Email: ${email}
-Message: ${message}
-      `;
-    } else {
-      emailSubject = 'New Prayer Request';
-      emailText = `
-Name: ${name}
-Email: ${email}
-City: ${city || 'N/A'}
-Phone: ${phone || 'N/A'}
-Message: ${message}
-      `;
-    }
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER, // send to yourself
-      replyTo: email,
-      subject: emailSubject,
-      text: emailText
-    };
-
     const info = await transporter.sendMail(mailOptions);
-
-    console.log("EMAIL SENT:", info);
-
-    res.status(200).json({ message: 'Email sent successfully' });
-
+    console.log('Email sent:', info.response);
+    res.json({ message: 'Email sent successfully' });
   } catch (error) {
-    console.error("FULL ERROR:", error);
-    res.status(500).json({ error: error.message });
+    console.error('Error sending email:', error);
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
-// PORT for deployment
-const PORT = process.env.PORT || 3000;
-
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
