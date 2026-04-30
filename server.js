@@ -6,16 +6,16 @@ const cors = require('cors');
 
 const app = express();
 
-// ✅ Middleware
+//  Middleware
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// ✅ Health check
+//  Health check
 app.get('/', (req, res) => {
   res.send('Backend is running...');
 });
 
-// ✅ Create transporter ONCE (important)
+//  Create transporter ONCE (important)
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
@@ -27,30 +27,30 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// ✅ Verify transporter at startup
+// Verify transporter at startup
 transporter.verify((error) => {
   if (error) {
-    console.error('❌ EMAIL CONFIG ERROR:', error);
+    console.error(' EMAIL CONFIG ERROR:', error);
   } else {
-    console.log('✅ Email server ready');
+    console.log(' Email server ready');
   }
 });
 
-// ✅ Handle GET (avoid browser loading issue)
+//  Handle GET (avoid browser loading issue)
 app.get('/send-email', (req, res) => {
   res.send('Use POST method to send email');
 });
 
-// ✅ Email API (NON-BLOCKING)
+//  Email API (NON-BLOCKING)
 app.post('/send-email', (req, res) => {
   console.log('DATA RECEIVED:', req.body);
 
   const { name, email, city, phone, subject, message } = req.body;
 
-  // ✅ Step 1: Respond immediately (NO WAITING)
+  //  Step 1: Respond immediately (NO WAITING)
   res.status(200).json({ message: 'Request received successfully' });
 
-  // ✅ Step 2: Send email in background
+  //  Step 2: Send email in background
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_USER,
@@ -67,16 +67,16 @@ Message: ${message}
 
   transporter.sendMail(mailOptions)
     .then(info => {
-      console.log('📧 EMAIL SENT:', info.response);
+      console.log(' EMAIL SENT:', info.response);
     })
     .catch(err => {
-      console.error('❌ EMAIL ERROR:', err);
+      console.error(' EMAIL ERROR:', err);
     });
 });
 
-// ✅ Start server
+//  Start server
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(` Server running on port ${PORT}`);
 });
