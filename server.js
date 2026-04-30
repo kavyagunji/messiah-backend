@@ -1,52 +1,82 @@
+require('dotenv').config();
+
 const express = require('express');
 const nodemailer = require('nodemailer');
+const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
 
-// Middleware to parse JSON bodies
+//  Middleware
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// POST endpoint to send email
-app.post('/send-email', async (req, res) => {
-  const { to, subject, text } = req.body;
-  
-  // Basic validation
-  if (!to || !subject || !text) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+//  Health check
+app.get('/', (req, res) => {
+  res.send('Backend is running...');
+});
 
-  // Log request body
-  console.log('Received email request:', req.body);
-
-  // Configure your SMTP transporter
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail', // or your email provider
-    auth: {
-      user: 'kavyagunji39@gmail.com', // your email
-      pass: 'qjfiawaboxyzcxck',        // your email password or app password
-    },
-  });
-
-  // Email options
-  const mailOptions = {
-    from: 'your.email@gmail.com',
-    to,
-    subject,
-    text,
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response);
-    res.json({ message: 'Email sent successfully' });
-  } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({ error: 'Failed to send email' });
+//  Create transporter ONCE (important)
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  family: 4, // 🔥 force IPv4 (fix ENETUNREACH)
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS // must be App Password
   }
 });
 
-// Start server
+// Verify transporter at startup
+transporter.verify((error) => {
+  if (error) {
+    console.error(' EMAIL CONFIG ERROR:', error);
+  } else {
+    console.log(' Email server ready');
+  }
+});
+
+//  Handle GET (avoid browser loading issue)
+app.get('/send-email', (req, res) => {
+  res.send('Use POST method to send email');
+});
+
+//  Email API (NON-BLOCKING)
+app.post('/send-email', (req, res) => {
+  console.log('DATA RECEIVED:', req.body);
+
+  const { name, email, city, phone, subject, message } = req.body;
+
+  //  Step 1: Respond immediately (NO WAITING)
+  res.status(200).json({ message: 'Request received successfully' });
+
+  //  Step 2: Send email in background
+  const mailOptions = {
+    from: process.env.EMAIL_USERS,
+    to: process.env.EMAIL_USERS,
+    replyTo: email,
+    subject: subject ? `Contact Form: ${subject}` : 'New Prayer Request',
+    text: `
+Name: ${name}
+Email: ${email}
+City: ${city || 'N/A'}
+Phone: ${phone || 'N/A'}
+Message: ${message}
+    `
+  };
+
+  transporter.sendMail(mailOptions)
+    .then(info => {
+      console.log(' EMAIL SENT:', info.response);
+    })
+    .catch(err => {
+      console.error(' EMAIL ERROR:', err);
+    });
+});
+
+//  Start server
+const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(` Server running on port ${PORT}`);
 });
