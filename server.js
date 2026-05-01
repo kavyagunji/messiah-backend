@@ -14,11 +14,17 @@ app.get('/', (req, res) => {
 
 // Email API
 app.post('/send-email', async (req, res) => {
-  const { name, email, city, phone, countryCode, message } = req.body;
+  const { name, email, city, phone, countryCode, message, subject } = req.body;
 
+  // Required validation
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Required fields missing' });
   }
+
+  // ✅ Subject fallback (no undefined)
+  const finalSubject = subject && subject.trim()
+    ? subject
+    : 'New Contact Form';
 
   try {
     await axios.post(
@@ -26,13 +32,19 @@ app.post('/send-email', async (req, res) => {
       {
         sender: { email: process.env.EMAIL_USER },
         to: [{ email: process.env.EMAIL_USER }],
-        subject: 'New Contact Form',
+        subject: finalSubject, // ✅ dynamic subject
+
+        // ✅ Hide optional fields if not present
         htmlContent: `
           <h2>Contact Form</h2>
           <p><b>Name:</b> ${name}</p>
           <p><b>Email:</b> ${email}</p>
-          <p><b>City:</b> ${city}</p>
-          <p><b>Phone:</b> ${countryCode} ${phone}</p>
+
+          ${city ? `<p><b>City:</b> ${city}</p>` : ''}
+          ${(phone || countryCode) 
+            ? `<p><b>Phone:</b> ${countryCode || ''} ${phone || ''}</p>` 
+            : ''}
+
           <p><b>Message:</b> ${message}</p>
         `
       },
@@ -47,13 +59,13 @@ app.post('/send-email', async (req, res) => {
     res.json({ success: true, message: 'Email sent ✅' });
 
   } catch (error) {
-  console.log('ERROR FULL:', error.response?.data || error.message);
+    console.log('ERROR FULL:', error.response?.data || error.message);
 
-  res.status(500).json({
-    success: false,
-    error: error.response?.data || error.message
-  });
-}
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
